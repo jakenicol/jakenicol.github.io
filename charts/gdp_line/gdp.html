@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link href="d3-tip.css" rel="stylesheet">
+<style> /* set the CSS */
+
+body { font: 12px Arial; position:relative;}
+
+/* CSS */
+path { 
+/* COMMENTED OUT BECAUSE LINES ARE COLORED IN THE D3 CODE, ACCORDING TO THE DATA
+    stroke: steelblue;
+ */
+    /* MADE THE LINES A LITTLE THICKER, SO HOVER EASIER TO ACHIEVE */
+    stroke-width: 3; 
+    fill: none; 
+    opacity: 0.3;  
+}
+
+/* CSS */
+path:hover { 
+    opacity: 1;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+
+#tooltip{
+	opacity: 0;
+	position: fixed;
+	top:0;
+	left:50%;
+	-webkit-transform: translate(-50%,0);
+			transform: translate(-50%,0);
+	z-index: 9999;
+	border: 1px solid black;
+	box-shadow: 0px 0px 5px 0px #ccc;
+	padding: 10px;
+	background-color:white;
+	pointer-events:none;
+}
+#tooltip:after{
+	top:100%;
+	left:50%;
+	border:solid transparent;
+	content: " ";
+	height: 0;
+	width: 0;
+	position: absolute;
+	border-top-color:black;
+	pointer-events:none;
+	border-width: 10px;
+	margin-left:-10px;
+}
+#tooltip:before{
+	top:100%;
+	left:50%;
+	border:solid transparent;
+	content: " ";
+	height: 0;
+	width: 0;
+	position: absolute;
+	z-index: 99999;
+	border-top-color:white;
+	pointer-events:none;
+	border-width: 9px;
+	margin-left:-9px;
+}
+#title{
+  font-size: 14px;
+  width: 100%;
+  font-family: "futura";
+ 
+
+  }
+
+  #title2{
+  font-size: 12px;
+  width: 100%;
+  font-family: "futura";
+ 
+
+  }
+
+  #title3{
+  font-size: 10px;
+  width: 100%;
+  font-family: "futura";
+  opacity:.5;
+}
+
+</style>
+
+<div id="title"><strong>Gross Domestic Product Per Capita in Latin America and the Caribbean</strong></div>
+<div id="title2">See how Nicaragua compares with it's closest neighbors in economic development over the years.</div>
+<div id="title3">Source:  <a href="http://data.worldbank.org/indicator/NY.GDP.PCAP.CD">The World Bank</a> </div>
+<body>
+
+	<div id="tooltip">Here is some info</div>
+<!-- load the d3.js library -->    
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="d3-tip.js"></script>
+
+<script>
+
+// Set the dimensions of the canvas / graph
+//INCREASED THE HEIGHT AND WIDTH AND LEFT MARGIN, OBVIOUSLY YOU CAN SET AS YOU WISH
+var margin = {top: 30, right: 20, bottom: 60, left: 60},
+    width = 800 - margin.left - margin.right, 
+    height = 500 - margin.top - margin.bottom;
+
+//COMMENTED OUT THIS SECTION, AS YOU'RE NOT PARSING DATES; YOUR YEAR VALUES ARE JUST NUMBERS
+// Parse the date / time
+// var parseDate = d3.time.format("%b %Y").parse; 
+
+//SECTION OF CODE THAT WAS HERE MOVED INTO THE FUNCTION THAT LOADS DATA. THIS IS NECESSARY SO TO SET UP FORMATTING OF THE X AXIS, USING A FUNCTION THAT REFERS TO THE DATA
+    
+// Adds the svg canvas
+var svg = d3.select("body")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    	.append("g")
+        .attr("transform", 
+              "translate(" + margin.left + "," + margin.top + ")");
+
+var tip = d3.tip()
+    .attr("class", "d3-tip")
+    .html(function(d) {
+
+        //you would modify what you want to show up in box here.
+        return "hfj"; 
+    });
+
+// Get the data
+d3.csv("gdp.csv", function(error, data) {
+    data.forEach(function(d) {
+// 		d.year = parseDate(d.year); //AGAIN COMMENTED OUT THIS PART BECAUSE YOU'RE NOT PARSING DATES
+		d.gdp = +d.gdp;
+    });
+
+	// Set the ranges
+	var x = d3.scale.linear().range([0, width]); //THIS LINE CHANGED BECAUSE YOUR X AXIS NEEDS A LINEAR SCALE NOT A TIME SCALE, AGAIN BECAUSE YOUR YEARS ARE JUST NUMBERS; THEY ARE NOT BEING PARSED FROM DATES
+	var y = d3.scale.linear().range([height, 0]);
+
+
+
+	// Define the line
+	var gdpline = d3.svg.line() //PRICELINE CHANGED TO GDPLINE, TO REFLECT YOUR DATA
+	    .interpolate("basis") //THIS INTERPOLATION SMOOTHS THE LINES, SO THEY DON'T JUST ZIG-ZAG FROM ONE YEAR TO THE NEXT, FOR A NICR VISUAL EFFECT. UP TO YOU WHETHER YOU WANT THIS
+		.x(function(d) { return x(d.year); })
+		.y(function(d) { return y(d.gdp); });
+
+    //THIS HAS BEEN MOVED INTO THE "GET THE DATA" FUNCTION FROM ABOVE
+    // Scale the range of the data
+    x.domain(d3.extent(data, function(d) { return d.year; }));
+    y.domain([0, 1000+d3.max(data, function(d) { return d.gdp; })]); //I ADDED 1000 TO THE Y DOMAIN, WHICH IS CALCULATED FROM THE MAXIMUM VAKUE IN THE GDP DATA, ADD A BIT OF SPACE AT THE TOP OF THE CHART
+
+    var timeScale = d3.scale.linear()
+    	.rangeRound(d3.extent(data, function(d) { return +d.year; }))
+    	.domain([0, width])
+    	.nice();
+
+    var gdpScale = d3.scale.linear()
+    	.range([0, 1000+d3.max(data, function(d) { return +d.gdp; })])
+    	.domain([height, 0]);
+
+
+	// SETS UP FORMATTING FOR X AXIS, WHERE YOU DON'T WANT COMMAS
+	var yearsFormatter = d3.format(".0f")
+	
+	// SETS UP FORMATTING FOR Y AXIS, WHERE YOU DO WANT COMMAS, AND WILL LATER APPEND $
+	var gdpFormatter = d3.format(",.0f")
+	
+	//SETS UP ORDINAL (CATEGORICAL) COLOR SCALE
+	//THIS WILL USE THE COUNTRY2 FIELD IN THE EDITED DATA TO MAKE MOST COUNTRIES A LIGHT GRAY, AND GIVING SPOT COLOR TO NICARAGUA AND PANAMA
+	//YOU CAN CUSTOMIZE COLORS AS YOUR SEE FIT
+	var color = d3.scale.ordinal()
+		.domain(["other","Nicaragua","Panama","Costa Rica"])
+		.range(["#ccc","#d95f02", "#7570b3", "#1b9e77"]);
+		
+	
+	//THIS HAS BEEN MOVED INTO THE "GET THE DATA" FUNCTION FROM ABOVE
+	// Define the axes
+	var xAxis = d3.svg.axis().scale(x)
+		.orient("bottom").ticks(10) //REDUCED THE NUMBER OF TICKS HERE FOR SOMETHING MORE REASONABLE. IT WAS 30
+		.tickFormat(function(d) { return yearsFormatter(d); }); 
+		//LAST PART APPLIES THE FORMATTING FUNCTION, SO YEAR LABELS ON AXIS DON'T HAVE COMMAS
+
+	var yAxis = d3.svg.axis().scale(y)
+		.orient("left").ticks(10)
+		.tickFormat(function(d) { return "$" + gdpFormatter(d); });
+		//LAST PART APPLIES THE FORMATTING FUNCTION, SO GDP PER CAP LABELS ON AXIS HAVE COMMAS AND $ SYMBOL
+
+
+// Nest the entries by COUNTRY
+// D3.NEST TURNS THE DATA INTO A NESTED ARRAY GROUPED BY A KEY, IN OUR CASE COUNTRY, EACH OF WHICH HAS VaLUES, WHICH ARE THE OTHER FIELDS IN THE DATA
+// IT'S THIS NESTING/GROUPING THAT CAUSES ONE LINE TO BE DRAWN PER COUNTRY
+	var dataNest = d3.nest()
+        .key(function(d) {return d.country;})
+        .entries(data);
+
+     svg.call(tip);
+        
+// Loop through each symbol / key
+    dataNest.forEach(function(d) {
+        //	console.log(d);
+
+
+
+        svg.append("path")
+            .attr("class", "line")
+            .style("stroke", function() { return d.color = color(d.values[0].country2); }) //THIS COLORS THE LINES ACCORDING TO COUNTRY2, PULLING THAT FROM THE NESTED DATA
+            .attr("d", gdpline(d.values))
+            .on("mousemove", function(){
+            	console.log();
+
+            	d3.select("#tooltip")
+            		.style("opacity", 1)
+            		.style("top", (d3.mouse(this)[1] - 40) + "px")
+            		.style("left", (d3.mouse(this)[0] + 67) + "px")
+            		.html("<strong>" + d.key + "</strong><br>" + "Year: " + timeScale(d3.mouse(this)[0] + margin.left) + "<br>$" + gdpFormatter(gdpScale(d3.mouse(this)[1])) );
+
+
+            	//console.log(d3.mouse(this))
+            	// tip.style("top", d3.mouse(this)[1] + "px")
+            	//    .style("left", d3.mouse(this)[0] + "px")
+            	// .show();
+            }).on("mouseout", function(){
+            	d3.select("#tooltip")
+            		.transition()
+            		.delay(150)
+            		.style("opacity", 0)
+            }); //AGAIN, PRICELINE CHANGED TO GDPLINE
+
+
+
+    });
+
+
+  
+
+    // Add the X Axis
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+    // Add the Y Axis
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis);
+	
+	//ADD LABEL FOR Y AXIS (YOU SHOULD EXPLAIN WHAT VARIANT OF GDP PER CAPITA WE"RE LOOKING AT, CONSTANT DOLLARS FOR SOME YEAR?)	
+	//NOTE THE CLASS OF LABEL, WHICH ALLOWS YOU TO STYLE IN THE CSS IF DESIRED
+	svg.append("text")
+		.attr("class", "label")
+		.attr("x", 10)
+		.attr("y", 10)
+		.text("GDP per capita (current US$)");
+
+	//ADD LABEL FOR X AXIS 
+	//NOTE THE CLASS OF LABEL, WHICH ALLOWS YOU TO STYLE IN THE CSS IF DESIRED
+	svg.append("text")
+		.attr("class", "label")
+		.attr("x",350)
+		.attr("y", 450)
+		.text("Year");
+		
+	//ADD LABEL FOR NICARAGUA LINE 
+	//NOTE THE CLASS OF LABEL, WHICH ALLOWS YOU TO STYLE IN THE CSS IF DESIRED
+	svg.append("text")
+		.attr("class", "label")
+		.attr("text-anchor", "end")
+		.attr("fill", "#d95f02")
+		.attr("x", width)
+		.attr("y", 350)
+		.text("Nicaragua");
+	
+	//ADD LABEL FOR PANALMA LINE 
+	//NOTE THE CLASS OF LABEL, WHICH ALLOWS YOU TO STYLE IN THE CSS IF DESIRED
+	svg.append("text")
+		.attr("class", "label")
+		.attr("text-anchor", "end")
+		.attr("fill", "#7570b3")
+		.attr("x", width)
+		.attr("y", 110)
+		.text("Panama");
+
+	//ADD LABEL FOR COSTA RICA LINE 
+	//NOTE THE CLASS OF LABEL, WHICH ALLOWS YOU TO STYLE IN THE CSS IF DESIRED
+	svg.append("text")
+		.attr("class", "label")
+		.attr("text-anchor", "end")
+		.attr("fill", "#1b9e77")
+		.attr("x", width)
+		.attr("y", 137)
+		.text("Costa Rica");
+
+
+
+
+//tip = d3.tip().attr('class', 'd3-tip').html(function(d) { return d; });
+
+/* Invoke the tip in the context of your visualization */
+//vis.call(tip)
+
+// vis.selectAll('rect')
+//   .data(data)
+// .enter().append('rect')
+//   .attr('width', function() { return x.rangeBand() })
+//   .attr('height', function(d) { return h - y(d) })
+//   .attr('y', function(d) { return y(d) })
+//   .attr('x', function(d, i) { return x(i) })
+//   .on('mouseover', tip.show)
+//   .on('mouseout', tip.hide)
+
+
+});
+
+</script>
+</body>

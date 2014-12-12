@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title></title>
+	<style type="text/css">
+	svg{
+		width:300px;
+	}
+	#explainertext{
+		font-family:Helvetica, Arial, sans-serif; font-size:18px; font-weight:700; margin-left:0px;
+		}
+	#subheader{
+		font-family:Helvetica, Arial, sans-serif; font-size:12px; font-weight:500; margin-left:0px;margin-top:10px;
+	}
+
+	#chart{
+		width:100%;
+	}
+
+	</style>
+</head>
+<body>
+<div id="explainertext">Oakland Mayor <br>Ranked Choice Voting Results</div>
+<div id="subheader">Results from Alameda County Registrar of Voters.<br>Total number of votes represents RCV first choice column only.</div>
+<div id="chart"></div>
+
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script>
+
+	var margin = {top:30, right:10, bottom:10, left:0},
+		width  = 300,
+		height = 700;
+
+	var svg = d3.select("#chart")
+		.append("svg")
+		.attr("width", "100%")
+		.attr("height", "100%")
+		.attr("viewBox", "0 0 " + width + " " + height);
+
+	var xScale = d3.scale.linear()
+		.range([0, width - margin.left - margin.right]);
+
+	var yScale = d3.scale.ordinal()
+		.rangeRoundBands([0, height - margin.top - margin.bottom], .15);
+
+	var xAxis = d3.svg.axis()
+    	.scale(xScale)
+    	.orient("bottom");
+
+	var yAxis = d3.svg.axis()
+    	.scale(yScale)
+    	.orient("left");
+
+
+	d3.json("http://media.journalism.berkeley.edu/projects/2014/20141104_election/candidates.json", function(error, data){
+
+		data = data.results;
+
+		//remove the NP - in front of names (except for Write-in)
+		data = data.map(function(d){ 
+			//if name is not "Write-in"
+			if(d["name_text"] != "Write-in"){
+				//replace name with everything after five characters
+				d["name_text"] = d["name_text"].substr(5, d["name_text"].length - 5);
+			}
+			return d;
+		});
+
+		//sort from highest to lowest based on votes_number
+		data.sort(function(a,b){ return b["votes_number"] - a["votes_number"]});
+		
+		//set domains
+		xScale.domain([0, 50000]);
+		yScale.domain(data.map(function(d){ return d["name_text"]; }));
+
+	
+		var bar = svg.selectAll(".bar")
+			.data(data)
+			.enter()
+			.append("g")
+			.attr("transform", function(d){ return "translate(" + margin.left + "," + (yScale(d["name_text"]) + margin.top) + ")" });
+
+		bar.append("text")
+			.attr("x", 0)
+			.attr("y", 0)
+			.text(function(d){ return d["name_text"];})
+			.style({"font-family":"Helvetica, Arial, san-serif", "font-size":"14px", "font-weight":"700"});
+
+
+		bar.append("rect")
+			.attr("x", 0)
+			.attr("y", 4)
+			.attr("width", function(d){ return xScale(d["votes_number"]); })
+			.attr("height", function(d){ return yScale.rangeBand() * .5; })
+			.style({"fill": "#ff7340", "stroke":"none"});
+
+		bar.append("text")
+			.attr("x", function(d){ if(d["votes_number"] > 6000){ return 5; } else { return xScale(d["votes_number"]) + 5;} })
+			.attr("y", 16)
+			.text(function(d){ return d3.format(",")(d["votes_number"]); })
+			.style({"font-family":"Helvetica, Arial, san-serif", "font-size": "11px", "fill":"white"})
+			.style("fill", function(d){ if(d["votes_number"] > 6000){ return "white";} else { return "black"; }});
+
+	});
+		
+	  d3.json("http://media.journalism.berkeley.edu/projects/2014/20141104_election/precincts.json", function(error, data){
+
+	  		data["results"][0]["percent_reported"]
+
+			svg.append("text")
+    		.attr("transform", "translate(" + margin.left + "," + (height-5) + ")")
+    		.text("Percent of Precincts Reported: " + data["results"][0]["percent_reported"])
+    		.style({"text-anchor":"start", "font-family":"Arial", "font-weight":"600", "font-size":"14px"});
+	
+    })
+
+
+</script>
+
+<div id="subheader">For complete up-to-date results:<br> <a href="http://www.acgov.org/rov/current_election/226/index.htm#mainsite">Alameda County Registrar of Voters</a></div>
+</body>
+</html>
