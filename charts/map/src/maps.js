@@ -1,9 +1,9 @@
 // creates two basemap layers
 var bright = L.tileLayer("https://{s}.tiles.mapbox.com/v3/mapbox.world-bright/{z}/{x}/{y}.png", {
-    attribution: "<a href='http://www.mapbox.com/about/maps/' target='_blank'>Terms &amp; Feedback</a>"
+    attribution: "<a href='https://www.mapbox.com/about/maps/' target='_blank'>Terms &amp; Feedback</a>"
 });
 var satellite = L.tileLayer("https://{s}.tiles.mapbox.com/v3/mapbox.blue-marble-topo-jul-bw/{z}/{x}/{y}.png", {
-    attribution: "<a href='http://www.mapbox.com/about/maps/' target='_blank'>Terms &amp; Feedback</a>"
+    attribution: "<a href='https://www.mapbox.com/about/maps/' target='_blank'>Terms &amp; Feedback</a>"
 });
 
 // functions to style the seismic risk layer
@@ -30,7 +30,7 @@ function getStyle(feature) {
 var seismic = L.geoJson(seismic_risk, {style:getStyle});
 
 // the url to send to the USGS API
-var quakedataUrl = "http://comcat.cr.usgs.gov/fdsnws/event/1/query?starttime=1965-01-01T00:00:00&minmagnitude=6&format=geojson&latitude=39.828175&longitude=-98.5795&maxradiuskm=6000&orderby=magnitude&callback="
+var quakedataUrl = "https://comcat.cr.usgs.gov/fdsnws/event/1/query?starttime=1965-01-01T00:00:00&minmagnitude=6&format=geojson&latitude=39.828175&longitude=-98.5795&maxradiuskm=6000&orderby=magnitude&callback="
 
 
 // the quakes layer, uses leaflet.ajax to make API call
